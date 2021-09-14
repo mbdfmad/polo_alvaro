@@ -1,0 +1,459 @@
+---
+title: "Tarea_1"
+author: "Alvaro Polo García"
+date: "10/9/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# **EJERCICIO 0**
+
+## Ejercicio pág 12
+
+### *Sección 1.*
+
+Crear un vector con 100 números del 1 al 6, usando "sample".
+```{r}
+(dado_honesto <- c(sample(1:6, size = 100, replace = TRUE)))
+
+```
+Generar una tabla de frecuencias absolutas con "table".
+```{r}
+(df1 <- table(dado_honesto))
+```
+Cargar las librerías necesarias...
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+dado_honesto_df <- data.frame(dado_honesto)
+
+```
+Generar una tabla de frecuencias relativas.
+```{r}
+prop.table(df1)
+
+```
+Tabla de frecuencias absoluta y relativa con Dplyr.
+```{r}
+dado_honesto_df %>% 
+  group_by(dado_honesto) %>% 
+  summarise(n = n()) %>% 
+  mutate(freq = n / sum(n))
+```
+
+### *Sección 2.*
+Generar un vector dado_cargado con la probabilidad de que el 6 sea el doble que la de los demás.
+```{r}
+(generar_dado <- c(sample(1:6, size = 100, replace = TRUE, prob = c(1,1,1,1,1,2))))
+
+```
+Tabla de frecuencias absolutas.
+```{r}
+(df4 <- table(generar_dado))
+```
+Tabla de frecuencias realtivas.
+```{r}
+(df5 <- prop.table(df4))
+```
+### *Sección 3.*
+Creción del vector v1: 4,4,4,4,3,3,3,3...
+```{r}
+(v1 <- c(rep(c(4,3,2,1), each = 4)))
+
+```
+Creación del vector v2: 1,2,2,3,3,3,4,4,4,4...
+```{r}
+(v2 <- c(rep(c(1,2,3,4),c(1,2,3,4))))
+```
+Creación del vector v3: 1,2,3,4,1,2,3,4...
+```{r}
+(v3 <- c(rep(seq(1,4,by=1),4)))
+```
+### *Sección 4.*
+Utilizando la tabla mpg de la librería tidyverse...
+```{r}
+library(dplyr)
+view(mpg)
+```
+Crear una tabla mpg2 que contenga las filas en las que la variable "class" = pickup.
+```{r}
+mpg2 <- data.frame(
+  mpg %>%
+    filter(class == "pickup"))
+mpg2
+
+```
+Tabla mpg2 anterior que solo contiene las variables que empiezan por c.
+```{r}
+mpg2 %>% 
+  select(starts_with("c"))
+```
+### *Sección 5.*
+Descarga del fichero "census.dta".
+```{r}
+library(haven)
+census <- read_dta("http://www.stata-press.com/data/r8/census.dta")
+```
+Cuales son las poblaciones totales de las regiones censales.
+```{r}
+census2 <- census %>% 
+  group_by(region) %>% 
+  summarise(region_pop = sum(pop))
+
+```
+Representar poblaciones en un diagrama de barras.
+```{r}
+barplot(height = census2$region_pop, names = census2$region,
+        xlab = "Región",
+        ylab = "Nº de habitantes",
+        main = "Distribución de la población por región")
+```
+
+Ordenar los estados por población de mayor a menor.
+```{r}
+census %>% 
+  select(state, pop) %>%
+  arrange(desc(pop))
+  
+```
+
+Crea una variable que contenga la tasa de divorcios/matrimonios.
+```{r}
+census %>%
+  mutate(ratio_d_m = divorce/marriage) %>% 
+  select(-poplt5,-pop5_17,-pop18p,-pop65p)
+  
+```
+
+Crea una tabla con dos valores por estado, la edad mediana y la porporción de mayor edad (10 primeros).
+```{r}
+(census3 <- census %>% 
+  mutate(prop_max_age = pop65p/pop) %>% 
+  select(state, medage,prop_max_age) %>% 
+  arrange(desc(medage))) %>% 
+  sample_n(10)
+```
+
+Haz un histograma (10 intervalos) de de la edad mediana y con la curva de densidad.
+```{r}
+cortes = seq(min(census3$medage),max(census3$medage), length.out = 11)
+ggplot(census, mapping = aes(medage))+
+  geom_histogram(aes(y = stat(density)),
+                 breaks = cortes, fill = "orange", color = "black") +
+  geom_density(color = "red",size = 1.5)
+```
+
+# **EJERCICIO 1. Análisis exploratorio de un conjunto de datos y operaciones dplyr.**
+### *Sección 1.*
+Leer el cholesterol.csv
+```{r}
+chlstrl = read.csv("./data/datacholesterol.csv")
+```
+Información del dataset.
+```{r}
+str(chlstrl)
+```
+Hay valores NA?...
+```{r}
+anyNA(chlstrl)
+```
+Localizar datos ausentes en la tabla...
+```{r}
+apply(is.na(chlstrl),2,which)
+```
+#### Variables Cuantitativas.
+Resumen numérico básico de la variable edad.(media, mediana).
+```{r}
+chlstrl %>% 
+  summarise(mean_age = mean(age),
+            med_age = median(age))
+           
+```
+
+Histograma de la variable edad.
+```{r}
+hist(x = chlstrl$age, main = "Histograma de Edad", 
+     xlab = "Edad", ylab = "Frecuencia")
+```
+
+Histograma y curva de densidad.
+```{r}
+cortes = seq(min(chlstrl$age),max(chlstrl$age), length.out = 11)
+ggplot(chlstrl, mapping = aes(age))+
+  geom_histogram(aes(y = stat(density)),
+                 breaks = cortes, fill = "orange", color = "black") +
+  geom_density(color = "red",size = 1.5)
+```
+
+#### Variables Categóricas
+Tabla de frecuencias absolutas.
+```{r}
+(table_gen <- table(chlstrl$gender))
+```
+Tabla de frecuencia relativa.
+```{r}
+prop.table(table_gen)
+```
+Diagrama de barras de la variable género.
+```{r}
+barplot(table(chlstrl$gender))
+```
+
+Cambio de valores en las variables height y weight.
+```{r}
+(chlstrl_modified <- chlstrl %>% 
+  mutate(height = height*0.0254,
+         weight = weight*0.454)) 
+```
+
+Añadimos una columna nueva que se llama BMI.
+```{r}
+(chlstrl_modified <- chlstrl_modified %>% 
+  mutate(BMI = weight/height^2))
+```
+
+Añadimos una nueva columna, dividiendo los grupos de edad.
+```{r}
+(chlstrl_modified <- chlstrl_modified %>% 
+  mutate(ageGroup = cut(age, breaks = c(10,40,70,100), labels = c("Group 1", "Group 2", "Group 3"))))
+```
+
+Cúantas observaciones hay por cada grupo?
+```{r}
+chlstrl_modified %>% 
+  group_by(ageGroup) %>% 
+  summarise(n = n())
+```
+
+Media de colesterol e IBM en las mujeres, por grupos de edad.
+```{r}
+chlstrl_modified %>% 
+  filter(gender == "female") %>% 
+  group_by(ageGroup) %>% 
+  summarise(mean_chol_fem = mean(chol, na.rm = TRUE),
+            mean_BMI_fem =  mean(BMI, na.rm = TRUE))
+```
+# **EJERCICIO 2**
+Crear una función de R para calcular los cambios de signo de un vector.
+```{r}
+cambiosSigno <- function(x){
+  lista <- (1:(length(x)-1))
+  count <- 0
+  
+  for(i in lista){
+    if(x[i] >= 0 & x[i+1] < 0){count <- count+1}
+     
+    else if (x[i] < 0 & x[i+1] > 0 ){ count <- count+1}
+  }
+  return(count)
+}
+
+v1 <- c(-12,-19,9,-13,-14,-17,8,-19,-14)
+cambiosSigno(v1)
+
+```
+Modifica la función para devolver las posiciones del vector, donde están los cambios de signo.
+```{r}
+cambiosSigno_pos <- function(x){
+  lista <- (1:(length(x)-1))
+  count <- 0
+  j = 1
+
+  posiciones <- c()
+  
+  for(i in lista){
+    if(x[i] >= 0 & x[i+1] < 0){
+      count <- count+1
+      posiciones[j] = (i+1)
+      j = (j+1)
+      
+      }
+     
+    else if (x[i] < 0 & x[i+1] > 0 ){
+      count <- count+1
+      posiciones[j] = (i+1)
+      j = (j+1)
+      
+      }
+  }
+  return(posiciones)
+}
+
+v1 <- c(-12,-19,9,-13,-14,-17,8,-19,-14)
+cambiosSigno_pos(v1)
+```
+Usando generación de vectores "sample".
+```{r}
+v1 <- sample(c(-10:10, size = 20, replace = TRUE))
+cambiosSigno(v1)
+cambiosSigno_pos(v1)
+```
+# **EJERCICIO 3**
+## R4DS -> 3.6.1
+
+1.Que geometría se utiliza para dibujar un line chart? boxplot? histograma? area chart?
+
+- geom_smooth()
+- geom_boxblot()
+- geom_histogram()
+- geom_area()
+
+2.Predicción del siguiente código...
+
+- Spredice que el progrma dibujar una línea de regresión mediante geom_smooth() sobre los diferentes puntos generados atrvés de geom_point() en relación con las variables displ, y hwy. Además, de no incluir el intervalo de confianza.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy, color = drv)) + 
+  geom_point() + 
+  geom_smooth(se = FALSE)
+```
+
+3. Que hace "show.legend = FALSE"?
+
+- show.legend = FALSE oculta la leyenda de los gáficos a realizar. Por defecto si no se incluye nada, el programa entiende que show.legend = TRUE, con lo que aparrece la leyenda por defecto.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy, color = drv)) + 
+  geom_point(show.legend = FALSE) + 
+  geom_smooth(se = FALSE, show.legend = FALSE)
+```
+
+4.Que hace el argumento se en geom_smooth()?
+
+-Representa el intervalo de confianza en el gráfico. Cuanto mayor cantidad de puntos, hay mayor precisión en dibujar el área, puesto que existe más información. Se puede comprobar en el gráfico del segundo apartado.
+
+5.Estos gáficos serán diferentes? Por qué?
+
+- Los gráficos serán iguales, puesto que es lo mismo introducir los argumentos en ggplot(), que se aplicarán a todas las funciones siguientes, en este caso geom_point() y geom_smooth(), que introducirlos cada uno por separado en cada una de las funciones anteriores, y puesto qeu la información es indéntica, las gráficas lo serán también.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_point() + 
+  geom_smooth()
+
+ggplot() + 
+  geom_point(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_smooth(data = mpg, mapping = aes(x = displ, y = hwy))
+```
+
+
+6.Crea el código de R àra obtener la sigueintes gráficas...
+
+Gráfico 1.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_point() + 
+  geom_smooth(se = FALSE)
+```
+
+Gráfico 2.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy)) + 
+  geom_point() + 
+  geom_smooth(mapping = aes(group = drv), se = FALSE)
+```
+
+Gráfico 3.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data = mpg, mapping = aes(x = displ, y = hwy, color = drv)) + 
+  geom_point() + 
+  geom_smooth(se = FALSE)
+```
+
+Gráfico 4.
+
+```{r message=FALSE, warning=FALSE}
+ggplot() + 
+  geom_point(data = mpg, mapping = aes(x = displ, y = hwy, color = drv)) + 
+  geom_smooth(data = mpg, mapping = aes(x = displ, y = hwy),se = FALSE)
+```
+
+Gráfico 5.
+
+```{r message=FALSE, warning=FALSE}
+ggplot() + 
+  geom_point(data = mpg, mapping = aes(x = displ, y = hwy, color = drv)) + 
+  geom_smooth(data = mpg, mapping = aes(x = displ, y = hwy,linetype = drv ),se = FALSE)
+```
+
+Gráfico 6.
+
+```{r message=FALSE}
+ggplot() + 
+  geom_point(data = mpg, mapping = aes(x = displ, y = hwy, color = drv))
+```
+
+## R4DS -> 5.4.1
+
+1.Encuentra los vuelos que...
+
+```{r}
+library(nycflights13)
+library(tidyverse)
+flights
+view(flights)
+
+```
+
+1.1 Retraso en la llegada de 2 horas o más.
+
+```{r}
+flights %>% 
+  filter(arr_delay >= 2)
+```
+
+1.2 Que vayan a Houston.
+
+```{r}
+flights %>% 
+  filter(dest =="IAH"| dest == "OAH") %>% 
+  select(flight,dest)
+  
+```
+
+1.3 Operados por United, America o Delta.
+
+```{r}
+flights %>% 
+  filter(carrier == "UA" | carrier == "AA" | carrier == "DL")
+  
+```
+
+1.4 Salieron en verano.
+
+```{r}
+flights %>% 
+  filter(month == 7 | month == 8 | month == 9)
+```
+
+1.5 Salieron a tiempo y llegaron 2 o más horas tarde.
+
+```{r}
+flights %>% 
+  filter(arr_delay >= 2) %>%
+  filter(dep_delay <= 0)
+          
+```
+
+1.6 Vuelos con más de 1 hora de retraso, que recupoeran 30 minutos en vuelo.
+
+```{r}
+flights %>% 
+  filter(dep_delay >= 1) %>%
+  filter(arr_delay  <= dep_delay -0.5)
+```
+
+1.7 Vuelos que salieron entre medianoche y las 6 am.
+
+```{r}
+flights %>% 
+  filter(dep_time >= 0 & dep_time <= 600)
+```
+
