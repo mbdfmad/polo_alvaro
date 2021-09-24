@@ -1,0 +1,323 @@
+---
+title: "Tarea_2"
+author: "Alvaro Polo García"
+date: "19/9/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# TAREA 2
+
+## Ejercicio1. Simulando variables aleatorias discretas.
+
+### *Apartado 1*
+La variable aleatoria discreta X1 tiene esta tabla de densidad de probabilidad (es la variable
+que se usa como ejemplo en la Sesión ):
+Calcula la media y la varianza teóricas de esta variable.
+
+```{r}
+X1 = c(0:3)
+P1 = c(64/125, 48/125, 12/125, 1/125)
+
+mu_1 = sum(X1*P1)
+sigma2_1= sum((X1 - mu_1)^2*P1)
+
+mu_1
+sigma2_1
+
+```
+
+### *Apartado 2*
+Combina sample con replicate para simular cien mil muestras de tamaño 10 de esta variable X1. Estudia la distribución de las medias muestrales como hemos hecho en ejemplos previos, ilustrando con gráficas la distribución de esas medias muestrales.
+
+```{r}
+set.seed(1)
+k = 100000
+
+X1 = c(0:3)
+P1 = c(64/125, 48/125, 12/125, 1/125)
+
+mediasmuestrales = replicate(k, {
+  muestra = sample(X1, size = 10, replace= TRUE, prob = P1)
+  mean(muestra)
+})
+
+head(mediasmuestrales,20)
+hist(mediasmuestrales, main = "", col="orange")
+abline(v = mean(mediasmuestrales), lty=2, lwd=5, col="blue")
+```
+
+Cambia después el tamaño de la muestra a 30 y repite el análisis.
+
+```{r}
+set.seed(1)
+k = 100000
+
+X1 = c(0:3)
+P1 = c(64/125, 48/125, 12/125, 1/125)
+
+mediasmuestrales = replicate(k, {
+  muestra = sample(X1, size = 30, replace= TRUE, prob = P1)
+  mean(muestra)
+})
+
+head(mediasmuestrales, 20)
+hist(mediasmuestrales, main = "", col="orange")
+abline(v = mean(mediasmuestrales), lty=2, lwd=5, col="blue")
+```
+
+### *Apartado 3*
+Suponemos que X1 y X2 son independientes. 
+¿Qué valores puede tomar la suma X1 + X2? 
+
+- 6 posibles valores: 0,1,2,3,4,5
+
+¿Cuál es su tabla de probabilidad?
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+
+library(dplyr)
+
+```
+
+
+```{r}
+
+p = c(64/125,48/125,12/125,1/125)*rep(c(1/2,1/4,1/4), each = 4)
+
+X1 = rep(0:3,3)
+X2 = rep(0:2, each = 4)
+Z = X1+X2
+table = data.frame(Z , X1, X2, p)
+
+
+table2 = table %>%
+  group_by(Z) %>%
+  summarise(p = sum(p))
+
+table2
+
+```
+
+### *Apartado 4*
+Calcula la media teórica de la suma X1 + X2.
+
+```{r}
+
+X1 = c(0:3)
+P1 = c(64/125, 48/125, 12/125, 1/125)
+X2 = c(0:2)
+P2 = c(1/2,1/4,1/4)
+
+mu_2 = sum(X2*P2)
+
+media_sum = mu_1 + mu_2
+
+media_sum
+
+```
+
+Después usa sample y replicate para simular cien mil valores de esta variable suma. Calcula la media de esos valores. Advertencia: no es el mismo tipo de análisis que hemos hecho en el segundo apartado.
+
+```{r}
+set.seed(1)
+k = 100000
+
+X1 = c(0:3)
+P1 = c(64/125, 48/125, 12/125, 1/125)
+
+X2 = c(0:2)
+P2 = c(1/2,1/4,1/4)
+
+medias_suma = replicate(k, {
+  muestra = sample(0:3, size = 1, replace= TRUE, prob = c(64/125, 48/125, 12/125, 1/125)) + sample(0:2, size = 1, replace = TRUE,prob = c(1/2, 1/4, 1/4))
+  mean(muestra)
+})
+mean(medias_suma)
+
+```
+
+## Ejercicio2. Datos Limpios
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(tidyverse)
+testResults <- read_csv("./data/testResults.csv")
+```
+Este fichero contiene las notas de los alumnos de una clase, que hicieron dos tests cada semana durante
+cinco semanas. La tabla de datos no cumple los principios de tidy data que hemos visto en clase. Tu
+tarea en este ejercicio es explicar por qué no se cumplen...
+
++ Un conjunto de datos se considera *limpio* si cumple estas tres condiciones:  
+
+  $1.$ Cada variable tiene su propia columna.  
+  $2.$ Cada observación tiene su propia fila.  
+  $3.$ Cada valor tiene su propia celda.  
+
+...obtener una tabla de datos limpios con la misma información usando tidyR.
+
+
+1.Vamos a separar la variable gender_age en gender y age, para ello utilizaremos un separate.
+
+```{r}
+testResults %>%
+  separate(col  =  gender_age, into =  c("gender", "age"), sep  =  "_", convert = TRUE)
+```
+
+
+2.Poner la semana en una única variable.
+
+```{r}
+testResults %>%
+  separate(col  =  gender_age, into =  c("gender", "age"), sep  =  "_", convert = TRUE) %>% 
+  pivot_longer(week1:week5, names_to = "week", values_to = "grades")
+
+```
+
+
+3.Borramos la palabra week de las semanas, para dejarlo con números enteros.
+
+```{r}
+testResults_limpios <- testResults %>%
+  separate(col  =  gender_age, into =  c("gender", "age"), sep  =  "_", convert = TRUE) %>% 
+  pivot_longer(week1:week5, names_to = "week", values_to = "grades") %>% 
+  separate(col = week, into = c("week_delete", "week"), sep = 4, convert = TRUE) %>% 
+  select(-week_delete)
+
+testResults_limpios
+```
+
+## Ejercicio 3. Lectura de R4DS.
+
+Haz el ejercicio 2 de la Sección 7.5.1.1 de R4DS. Las ideas de esa sección son importantes para nuestro
+trabajo de las próximas sesiones.
+
+¿Qué variable del conjunto de datos de diamantes es más importante para predecir el precio de un diamante? 
+
+```{r}
+names(diamonds)
+
+```
+
+De todas las variables que aparecen en el dataset de diamonds, de las cuales solo pueden tener relación con el precio:
+
+"carat"   "cut"     "color"   "clarity"   
+
+Ya que el resto de varibles dependen de las medidas, incluidas en "carat".
+
+Para comprobar cual es la más determinante (sin contar con "cut"), debemos estudiar la relación de cada una de las anteriores con el precio.
+El estudio se realizará con diagramas de tipo "boxplot" de tal manera que se aprecie adecuadamente la relación.
+
+"carat" y "price"
+```{r}
+
+ggplot(data = diamonds, mapping = aes(x = carat, y = price))+
+  geom_boxplot(mapping = aes(group = cut_width(carat, 0.1)), orientation = "x")
+   
+```
+
+"color" y "price"
+
+```{r}
+
+ggplot(data = diamonds, mapping = aes(x = color, y = price))+
+  geom_boxplot(mapping = aes(x = reorder(color, price, FUN = median)))
+
+```
+
+"clarity" y "price"
+
+```{r}
+
+ggplot(data = diamonds, mapping = aes(x = clarity, y = price))+
+  geom_boxplot(mapping = aes(x = reorder(clarity, price, FUN = median)))
+
+```
+
+Gracias al tipo de gráfico 'boxplot', se pueden observar mucha variaciones dentro de cada unos de los 'boxplot' en la comparación con la "clarity" y el "color". Sin embargo donde más variación se observa entre las diferentes categorías, es en la comparacion con "carat"(quilates).
+
+¿Cómo está correlacionada esta variable con el corte? 
+
+```{r}
+
+ggplot(data = diamonds, mapping = aes(x = cut, y = carat))+
+  geom_boxplot()
+
+```
+
+Observando el diagrama, se puede apreciar que los diamantes con mayor quilates, tienen un corte "fair" regular, ademásde que tiene una relación con una pendiente ligeramente negativa.
+
+¿Por qué la combinación de estas dos relaciones conlleva que los diamantes de menor calidad sean más costosos?
+
+Seguramente, es debido a que los diamantes grandes y mejores, necesitan un corte regular no muy aparatosos, mientras que los diamantes con menos quilates o peores, necesitan un corte perfecto para su dsitribución.
+
+Haz el ejercicio 4 de la Sección 12.6.1 de R4DS. ¡Aprovecha el código previo de esa sección para trabajar
+con datos limpios!
+
+```{r}
+library(tidyr)
+
+view(who)
+
+oms <- who %>%
+  pivot_longer(
+    cols = new_sp_m014:newrel_f65, 
+    names_to = "key", 
+    values_to = "cases", 
+    values_drop_na = TRUE) %>% 
+  mutate(
+    key = stringr::str_replace(key, "newrel", "new_rel")) %>%
+  separate(key, c("new", "var", "sexage")) %>% 
+  select(-new, -iso2, -iso3) %>% 
+  separate(sexage, c("sex", "age"), sep = 1)
+
+oms
+```
+
+Para cada país, año y sexo calcula el total del número de casos de tuberculosis.Crea una visualización informativa de los datos.
+
+```{r}
+
+oms1 <- oms %>% 
+  group_by(country, year, sex) %>% 
+  summarise(cases = sum(cases)) %>% 
+  unite(country_sex, country, sex, remove = FALSE) 
+
+ggplot(oms1, aes(year, cases)) + 
+  geom_line(aes(group = country_sex, colour = sex))
+  
+```
+
+Nos centramos en los datos desde 1995...
+
+```{r}
+oms2 <- oms1 %>% 
+  filter(year > 1995)
+
+ggplot(oms2, aes(year, cases)) + 
+  geom_line(aes(group = country_sex, colour = sex))
+
+```
+
+También podemos selecionar unicamente aquellos con un mayor número de casos...
+
+```{r}
+
+oms3 <- oms2 %>% 
+   filter(cases > 35000) 
+
+ggplot(oms3, aes(year, cases)) + 
+  geom_line(aes(group = country_sex, colour = sex))
+
+```
+
+
+
+
+
+
+
